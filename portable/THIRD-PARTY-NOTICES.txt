@@ -1,0 +1,28 @@
+The Hand for Windows 1.0.0 — third-party components
+================================================
+
+This portable build redistributes the official Windows x64 releases listed
+below. They are unpacked only into a temporary directory while The Hand runs.
+
+Node.js 22.23.3 LTS
+- Project: https://nodejs.org/
+- Source: https://github.com/nodejs/node/tree/v22.23.3
+- License: included as Node-LICENSE.txt
+
+yt-dlp 2026.08.19
+- Project and source: https://github.com/yt-dlp/yt-dlp/tree/2026.08.19
+- License: The Unlicense
+
+FFmpeg 9.0.2 essentials build by Gyan Doshi
+- Build project: https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2
+- Corresponding FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/n9.0.2
+- License information: https://ffmpeg.org/legal.html
+- The executable reports its exact configuration with: ffmpeg -buildconf
+
+LZMA SDK 23.01 compact self-extractor
+- Project and source: https://www.7-zip.org/sdk.html
+- License: public domain
+
+The Hand itself is licensed under GPL-3.0. Its corresponding source, including
+the complete portable build recipe and pinned component checksums, is at:
+https://github.com/flowstream-kaze/the-hand-windows

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071a2d">
+  <meta name="description" content="Download video or audio from a web link with The Hand.">
+  <title>The Hand</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="The Hand home">
+        <img src="/icon.svg" alt="" width="44" height="44">
+        <span>The Hand</span>
+      </a>
+      <span class="privacy-pill">Private downloader · 1.0.0</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="eyebrow">GRAB MEDIA FROM THE WEB</div>
+        <h1 id="hero-title">Pull it down.<br><span>Keep it yours.</span></h1>
+        <p>Paste a media link, choose the quality, and download it directly to your device.</p>
+
+        <form id="lookup-form" class="url-form">
+          <label class="sr-only" for="url-input">Media URL</label>
+          <div class="url-field">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10.6 13.4a1 1 0 0 0 1.4 1.4l4.6-4.6a3 3 0 1 0-4.2-4.2L9.8 8.6a1 1 0 1 0 1.4 1.4l2.6-2.6a1 1 0 1 1 1.4 1.4l-4.6 4.6Zm2.8-2.8a1 1 0 0 0-1.4-1.4l-4.6 4.6a3 3 0 1 0 4.2 4.2l2.6-2.6a1 1 0 0 0-1.4-1.4l-2.6 2.6a1 1 0 1 1-1.4-1.4l4.6-4.6Z"/></svg>
+            <input id="url-input" name="url" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="Paste a video or media URL" required>
+            <button id="paste-button" class="paste-button" type="button">Paste</button>
+          </div>
+          <button id="lookup-button" class="primary-button" type="submit">
+            <span>Find downloads</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m13 5 7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6L13 5Z"/></svg>
+          </button>
+        </form>
+        <div id="global-error" class="notice error" role="alert" hidden></div>
+      </section>
+
+      <section id="results" class="results" aria-labelledby="results-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <span class="step">01</span>
+            <h2 id="results-heading">Choose a format</h2>
+          </div>
+          <button id="new-link-button" class="text-button" type="button">Use another link</button>
+        </div>
+
+        <article class="media-card">
+          <div class="thumbnail-wrap">
+            <img id="media-thumbnail" alt="" referrerpolicy="no-referrer">
+            <span id="media-duration" class="duration"></span>
+          </div>
+          <div class="media-copy">
+            <h3 id="media-title"></h3>
+            <p id="media-creator"></p>
+          </div>
+        </article>
+
+        <div id="format-list" class="format-list" role="radiogroup" aria-label="Download format"></div>
+        <button id="start-button" class="primary-button wide" type="button" disabled>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4h2v9l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V4Zm-5 15h12v2H6v-2Z"/></svg>
+          <span>Start download</span>
+        </button>
+      </section>
+
+      <section id="job-panel" class="job-panel" aria-labelledby="job-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <span class="step">02</span>
+            <h2 id="job-heading">Preparing download</h2>
+          </div>
+          <span id="job-status" class="status-badge">Queued</span>
+        </div>
+        <article class="progress-card">
+          <div class="progress-topline">
+            <div>
+              <h3 id="job-title"></h3>
+              <p id="job-option"></p>
+            </div>
+            <strong id="job-percent">0%</strong>
+          </div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="progress-bar" class="progress-bar"></div>
+          </div>
+          <div class="progress-meta">
+            <span id="job-bytes">Waiting for data</span>
+            <span id="job-speed"></span>
+          </div>
+          <div id="job-error" class="notice error" role="alert" hidden></div>
+          <div class="job-actions">
+            <button id="cancel-button" class="secondary-button" type="button">Cancel</button>
+            <a id="download-button" class="primary-button" href="#" hidden>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4h2v9l3.5-3.5 1.4 1.4L12 16.8l-5.9-5.9 1.4-1.4L11 13V4Zm-5 15h12v2H6v-2Z"/></svg>
+              <span>Save file</span>
+            </a>
+            <button id="retry-button" class="primary-button" type="button" hidden>Try again</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>Powered by yt-dlp</span>
+      <span>Downloads expire from the server automatically.</span>
+    </footer>
+  </div>
+</body>
+</html>

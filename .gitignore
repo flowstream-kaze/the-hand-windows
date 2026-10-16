@@ -1,0 +1,7 @@
+node_modules/
+data/
+portable/.cache/
+portable/.build/
+portable/dist/
+*.log
+.DS_Store

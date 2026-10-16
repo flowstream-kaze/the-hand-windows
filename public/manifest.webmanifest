@@ -1,0 +1,17 @@
+{
+  "name": "The Hand",
+  "short_name": "The Hand",
+  "description": "A private web media downloader powered by yt-dlp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05111f",
+  "theme_color": "#071a2d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
