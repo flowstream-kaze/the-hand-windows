@@ -39,6 +39,19 @@ portable/build-windows-x64.sh
 
 The build verifies pinned SHA-256 checksums for every downloaded runtime component. See [`portable/README.md`](portable/README.md) for packaging details.
 
+## Icons
+
+The browser, PWA, and executable icons are derived from one 1024 px master, `branding/icon-source.png` — the same artwork used by the Android app in [`flowstream-kaze/the-hand`](https://github.com/flowstream-kaze/the-hand). Regenerate every size from it:
+
+```bash
+for size in 512 192 180 48 32 16; do
+  ffmpeg -y -i branding/icon-source.png -vf scale=$size:$size:flags=lanczos,format=rgba \
+    "public/scaled-$size.png"
+done
+```
+
+Rename the results to `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `favicon-48.png`, `favicon-32.png`, and `favicon-16.png`; `icon-maskable-512.png` is a copy of the 512 px render. `portable/build-windows-x64.sh` converts `public/icon-512.png` into the executable icon.
+
 ## Security
 
 The server binds to loopback, rejects credentials/custom ports/private-network targets, rate-limits expensive requests, runs subprocesses without a shell, and applies download size/time limits. It still processes untrusted remote media, so keep yt-dlp current and do not expose the service publicly.
