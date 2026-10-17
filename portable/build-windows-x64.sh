@@ -7,7 +7,7 @@ CACHE="$PORTABLE_DIR/.cache"
 BUILD="$PORTABLE_DIR/.build"
 PAYLOAD="$BUILD/payload"
 DIST="$PORTABLE_DIR/dist"
-OUTPUT="$DIST/The-Hand-Windows-v1.0.0-x64.exe"
+OUTPUT="$DIST/The-Hand-Windows-v1.0.1-x64.exe"
 
 NODE_VERSION=22.23.3
 NODE_ARCHIVE="node-v${NODE_VERSION}-win-x64.zip"
@@ -71,13 +71,13 @@ cp "$PORTABLE_DIR/THIRD-PARTY-NOTICES.txt" "$PAYLOAD/docs/"
 x86_64-w64-mingw32-gcc -Os -s -static -municode -mwindows \
   "$PORTABLE_DIR/launcher.c" -o "$PAYLOAD/launcher.exe"
 
-ffmpeg -hide_banner -loglevel error -y -i "$ROOT/public/icon.svg" -vf scale=256:256 "$BUILD/icon.ico"
+ffmpeg -hide_banner -loglevel error -y -i "$ROOT/public/icon-512.png" -vf scale=256:256 "$BUILD/icon.ico"
 cat > "$BUILD/resource.rc" <<'RC'
 #include <windows.h>
 1 ICON "icon.ico"
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS 0x40004L
@@ -90,12 +90,12 @@ BEGIN
   BEGIN
    VALUE "CompanyName", "flowstream-kaze\0"
    VALUE "FileDescription", "The Hand for Windows\0"
-   VALUE "FileVersion", "1.0.0\0"
+   VALUE "FileVersion", "1.0.1\0"
    VALUE "InternalName", "TheHandWindows\0"
    VALUE "LegalCopyright", "GPL-3.0\0"
-   VALUE "OriginalFilename", "The-Hand-Windows-v1.0.0-x64.exe\0"
+   VALUE "OriginalFilename", "The-Hand-Windows-v1.0.1-x64.exe\0"
    VALUE "ProductName", "The Hand for Windows\0"
-   VALUE "ProductVersion", "1.0.0\0"
+   VALUE "ProductVersion", "1.0.1\0"
   END
  END
  BLOCK "VarFileInfo"

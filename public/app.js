@@ -85,7 +85,7 @@ function renderInfo(info) {
   $('#media-duration').textContent = formatDuration(info.duration);
   $('#media-duration').hidden = !info.duration;
   const thumbnail = $('#media-thumbnail');
-  thumbnail.src = info.thumbnail || '/icon.svg';
+  thumbnail.src = info.thumbnail || '/icon-192.png';
   thumbnail.alt = info.thumbnail ? `Thumbnail for ${info.title}` : '';
   formatList.replaceChildren();
 

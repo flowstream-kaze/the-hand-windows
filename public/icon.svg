@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="A hand pulling down a web page">
-  <rect width="512" height="512" rx="116" fill="#071a2d"/>
-  <path d="M112 230c0-20 16-36 36-36h216c20 0 36 16 36 36v190c0 20-16 36-36 36H148c-20 0-36-16-36-36V230Z" fill="#31d5ef"/>
-  <path d="M112 251h288" stroke="#071a2d" stroke-width="18" opacity=".34"/>
-  <path d="M234 292h44v67h48l-70 70-70-70h48v-67Z" fill="#071a2d"/>
-  <path d="M215 61h82c18 0 32 14 32 32v71h18c26 0 47 21 47 47v31c0 28-23 51-51 51h-24v-67a20 20 0 0 0-40 0v67h-18v-67a20 20 0 0 0-40 0v67h-18v-67a20 20 0 0 0-40 0v38c-20-8-34-27-34-50v-3c0-26 21-47 47-47h7V93c0-18 14-32 32-32Z" fill="#f5fbff"/>
-  <path d="M203 164v-49m58 49v-62m58 70v-57" stroke="#071a2d" stroke-width="12" stroke-linecap="round" opacity=".18"/>
-</svg>

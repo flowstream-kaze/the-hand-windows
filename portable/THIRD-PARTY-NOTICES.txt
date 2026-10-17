@@ -1,4 +1,4 @@
-The Hand for Windows 1.0.0 — third-party components
+The Hand for Windows 1.0.1 — third-party components
 ================================================
 
 This portable build redistributes the official Windows x64 releases listed

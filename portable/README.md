@@ -1,6 +1,6 @@
 # Portable Windows x64 build
 
-Version 1.0.0 packages The Hand as one self-extracting executable for 64-bit Windows 10/11.
+Version 1.0.1 packages The Hand as one self-extracting executable for 64-bit Windows 10/11.
 
 ## Runtime behavior
 
@@ -25,5 +25,5 @@ portable/build-windows-x64.sh
 The script downloads pinned component releases, verifies every SHA-256 digest, cross-compiles the launcher and branded self-extractor, and writes:
 
 ```text
-portable/dist/The-Hand-Windows-v1.0.0-x64.exe
+portable/dist/The-Hand-Windows-v1.0.1-x64.exe
 ```
