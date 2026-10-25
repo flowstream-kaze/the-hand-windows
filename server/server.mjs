@@ -13,6 +13,11 @@ import {
   safeDownloadName,
   validateMediaUrl,
 } from './lib.mjs';
+import {
+  ensureManagedYtDlp,
+  updateManagedYtDlp,
+  ytDlpVersion,
+} from './ytdlp-update.mjs';
 
 const WEB_ROOT = resolve(fileURLToPath(new URL('../public/', import.meta.url)));
 const DATA_ROOT = resolve(process.env.DATA_DIR || resolve(tmpdir(), 'the-hand-windows'));
@@ -29,14 +34,17 @@ const jobs = new Map();
 const queue = [];
 const requests = new Map();
 let activeJobs = 0;
+let activeLookups = 0;
 let activeTransfers = 0;
 let lastActivity = Date.now();
-
-function findYtDlp() {
-  return process.env.YTDLP_PATH ? resolve(process.env.YTDLP_PATH) : 'yt-dlp';
-}
-
-const ytdlpPath = findYtDlp();
+let ytdlpPath = process.env.YTDLP_PATH ? resolve(process.env.YTDLP_PATH) : 'yt-dlp';
+const bundledYtDlpPath = process.env.BUNDLED_YTDLP_PATH
+  ? resolve(process.env.BUNDLED_YTDLP_PATH)
+  : null;
+let ytdlpUpdatesAvailable = PORTABLE_MODE && Boolean(bundledYtDlpPath) && ytdlpPath !== bundledYtDlpPath;
+let ytdlpInstalledVersion = '';
+let ytdlpUpdateState = 'idle';
+let ytdlpUpdateMessage = '';
 
 async function commandFor(args) {
   if (ytdlpPath === 'yt-dlp') return { command: ytdlpPath, args };
@@ -167,35 +175,40 @@ function killProcess(child, signal = 'SIGTERM') {
 }
 
 async function lookup(url) {
-  const safeUrl = await validateMediaUrl(url);
-  const output = await runCapture([
-    '--dump-single-json',
-    '--skip-download',
-    '--no-playlist',
-    '--no-warnings',
-    '--no-cache-dir',
-    '--socket-timeout', '15',
-    '--retries', '3',
-    '--', safeUrl,
-  ]);
-  let info;
+  activeLookups += 1;
   try {
-    info = JSON.parse(output);
-  } catch {
-    throw new Error('yt-dlp returned invalid media information.');
+    const safeUrl = await validateMediaUrl(url);
+    const output = await runCapture([
+      '--dump-single-json',
+      '--skip-download',
+      '--no-playlist',
+      '--no-warnings',
+      '--no-cache-dir',
+      '--socket-timeout', '15',
+      '--retries', '3',
+      '--', safeUrl,
+    ]);
+    let info;
+    try {
+      info = JSON.parse(output);
+    } catch {
+      throw new Error('yt-dlp returned invalid media information.');
+    }
+    const lookupId = randomUUID();
+    const result = publicInfo(info, lookupId);
+    if (!result.options.some((option) => option.kind === 'video')) {
+      throw new Error('No downloadable video formats were found.');
+    }
+    lookups.set(lookupId, {
+      createdAt: Date.now(),
+      url: safeUrl,
+      title: result.title,
+      options: result.options,
+    });
+    return result;
+  } finally {
+    activeLookups -= 1;
   }
-  const lookupId = randomUUID();
-  const result = publicInfo(info, lookupId);
-  if (!result.options.some((option) => option.kind === 'video')) {
-    throw new Error('No downloadable video formats were found.');
-  }
-  lookups.set(lookupId, {
-    createdAt: Date.now(),
-    url: safeUrl,
-    title: result.title,
-    options: result.options,
-  });
-  return result;
 }
 
 function publicJob(job) {
@@ -461,8 +474,67 @@ async function serveStatic(pathname, res, headOnly = false) {
   }
 }
 
+function publicYtDlpStatus() {
+  return {
+    available: ytdlpUpdatesAvailable,
+    version: ytdlpInstalledVersion,
+    state: ytdlpUpdateState,
+    message: ytdlpUpdateMessage,
+  };
+}
+
+async function updateYtDlp() {
+  if (!ytdlpUpdatesAvailable) throw new Error('yt-dlp updates are managed by this installation.');
+  if (ytdlpUpdateState === 'updating') throw new Error('A yt-dlp update is already running.');
+  if (activeJobs > 0 || queue.length > 0 || activeLookups > 0) {
+    throw new Error('Wait for current lookups and downloads to finish before updating yt-dlp.');
+  }
+
+  ytdlpUpdateState = 'updating';
+  ytdlpUpdateMessage = '';
+  try {
+    const result = await updateManagedYtDlp({
+      managedPath: ytdlpPath,
+      currentVersion: ytdlpInstalledVersion,
+    });
+    ytdlpInstalledVersion = result.version;
+    ytdlpUpdateMessage = result.status === 'updated'
+      ? `Updated yt-dlp to ${result.version}.`
+      : `yt-dlp ${result.version} is already current.`;
+    return { ...publicYtDlpStatus(), state: 'idle', result: result.status };
+  } catch (error) {
+    ytdlpUpdateMessage = errorMessage(error);
+    throw error;
+  } finally {
+    ytdlpUpdateState = 'idle';
+  }
+}
+
+function requestOriginAllowed(req) {
+  const authority = String(req.headers.host || '');
+  let host;
+  try {
+    host = new URL(`http://${authority}`).hostname;
+  } catch {
+    return false;
+  }
+  if (PORTABLE_MODE && !['127.0.0.1', '::1', '[::1]', 'localhost'].includes(host)) return false;
+  if (['GET', 'HEAD'].includes(req.method || '')) return true;
+  const origin = req.headers.origin;
+  if (!origin) return true; // Native clients and local command-line diagnostics.
+  try {
+    const parsed = new URL(origin);
+    return ['http:', 'https:'].includes(parsed.protocol) && parsed.host === authority;
+  } catch {
+    return false;
+  }
+}
+
 async function route(req, res) {
   lastActivity = Date.now();
+  if (!requestOriginAllowed(req)) {
+    return json(res, 403, { error: 'Cross-origin requests are not allowed.' });
+  }
   const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = requestUrl.pathname;
   if (rateLimited(req, 'all', 240)) {
@@ -474,9 +546,28 @@ async function route(req, res) {
   }
 
   if (req.method === 'GET' && pathname === '/api/health') {
-    return json(res, 200, { ok: true, activeJobs, queuedJobs: queue.length });
+    return json(res, 200, {
+      ok: true,
+      activeJobs,
+      queuedJobs: queue.length,
+      ytdlpUpdating: ytdlpUpdateState === 'updating',
+    });
+  }
+  if (req.method === 'GET' && pathname === '/api/ytdlp') {
+    return json(res, 200, publicYtDlpStatus());
+  }
+  if (req.method === 'POST' && pathname === '/api/ytdlp/update') {
+    try {
+      return json(res, 200, await updateYtDlp());
+    } catch (error) {
+      const busy = ytdlpUpdateState === 'updating' || activeJobs > 0 || queue.length > 0 || activeLookups > 0;
+      return json(res, busy ? 409 : 500, { error: errorMessage(error), ...publicYtDlpStatus() });
+    }
   }
   if (req.method === 'POST' && pathname === '/api/info') {
+    if (ytdlpUpdateState === 'updating') {
+      return json(res, 409, { error: 'Wait for the yt-dlp update to finish.' });
+    }
     try {
       const body = await readJson(req);
       return json(res, 200, await lookup(body.url));
@@ -485,6 +576,9 @@ async function route(req, res) {
     }
   }
   if (req.method === 'POST' && pathname === '/api/jobs') {
+    if (ytdlpUpdateState === 'updating') {
+      return json(res, 409, { error: 'Wait for the yt-dlp update to finish.' });
+    }
     try {
       const body = await readJson(req);
       return json(res, 202, await createJob(body.lookupId, body.optionId));
@@ -511,6 +605,24 @@ async function route(req, res) {
   return json(res, 404, { error: 'Not found.' });
 }
 
+if (ytdlpUpdatesAvailable) {
+  try {
+    const versions = await ensureManagedYtDlp({
+      bundledPath: bundledYtDlpPath,
+      managedPath: ytdlpPath,
+    });
+    ytdlpInstalledVersion = versions.version;
+  } catch (error) {
+    console.error(`Unable to initialize persistent yt-dlp updates: ${errorMessage(error)}`);
+    ytdlpPath = bundledYtDlpPath;
+    ytdlpUpdatesAvailable = false;
+    ytdlpUpdateMessage = 'Persistent yt-dlp updates are unavailable; using the bundled version.';
+    ytdlpInstalledVersion = await ytDlpVersion(ytdlpPath).catch(() => '');
+  }
+} else {
+  ytdlpInstalledVersion = await ytDlpVersion(ytdlpPath).catch(() => '');
+}
+
 await mkdir(DATA_ROOT, { recursive: true });
 // Jobs are intentionally temporary. Remove only UUID-shaped job directories left
 // by a previous unclean shutdown; never sweep arbitrary files from DATA_ROOT.
@@ -525,7 +637,8 @@ const server = createServer((req, res) => {
 
 const cleanup = setInterval(async () => {
   const now = Date.now();
-  if (PORTABLE_MODE && activeJobs === 0 && activeTransfers === 0 && now - lastActivity > 15 * 60_000) {
+  if (PORTABLE_MODE && activeJobs === 0 && activeTransfers === 0 &&
+      ytdlpUpdateState !== 'updating' && now - lastActivity > 15 * 60_000) {
     shutdown();
     return;
   }

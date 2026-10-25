@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   curateFormats,
   isPrivateAddress,
@@ -7,6 +10,11 @@ import {
   safeDownloadName,
   validateMediaUrl,
 } from '../server/lib.mjs';
+import {
+  compareYtDlpVersions,
+  ensureManagedYtDlp,
+  updateManagedYtDlp,
+} from '../server/ytdlp-update.mjs';
 
 test('rejects private network URLs', async () => {
   await assert.rejects(() => validateMediaUrl('http://127.0.0.1/video'), /private network/);
@@ -75,4 +83,71 @@ test('parses machine-readable progress', () => {
 test('sanitizes response filenames', () => {
   assert.equal(safeDownloadName('bad\r\n:name?.mp4'), 'bad_name_.mp4');
   assert.equal(safeDownloadName(''), 'download');
+});
+
+test('compares yt-dlp calendar versions numerically', () => {
+  assert.equal(compareYtDlpVersions('2026.10.2', '2026.9.30'), 1);
+  assert.equal(compareYtDlpVersions('2026.10.21', '2026.10.21'), 0);
+  assert.equal(compareYtDlpVersions('2026.8.19', '2026.10.1'), -1);
+});
+
+test('restores or upgrades the managed yt-dlp copy from the bundle', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'the-hand-ytdlp-'));
+  const bundledPath = join(directory, 'bundled.exe');
+  const managedPath = join(directory, 'managed', 'yt-dlp.exe');
+  const versionReader = async (path) => (await readFile(path, 'utf8')).trim();
+  try {
+    await writeFile(bundledPath, '2026.08.19');
+    let status = await ensureManagedYtDlp({ bundledPath, managedPath, versionReader });
+    assert.equal(status.version, '2026.08.19');
+    assert.equal(await readFile(managedPath, 'utf8'), '2026.08.19');
+
+    await writeFile(bundledPath, '2026.10.21');
+    status = await ensureManagedYtDlp({ bundledPath, managedPath, versionReader });
+    assert.equal(status.version, '2026.10.21');
+    assert.equal(await readFile(managedPath, 'utf8'), '2026.10.21');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('updates a disposable candidate before replacing managed yt-dlp', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'the-hand-ytdlp-update-'));
+  const managedPath = join(directory, 'yt-dlp.exe');
+  const versionReader = async (path) => (await readFile(path, 'utf8')).trim();
+  const updateRunner = async (path) => writeFile(path, '2026.10.21');
+  try {
+    await writeFile(managedPath, '2026.08.19');
+    const result = await updateManagedYtDlp({
+      managedPath,
+      currentVersion: '2026.08.19',
+      versionReader,
+      updateRunner,
+    });
+    assert.equal(result.status, 'updated');
+    assert.equal(result.version, '2026.10.21');
+    assert.equal(await readFile(managedPath, 'utf8'), '2026.10.21');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('a failed candidate update leaves the installed yt-dlp untouched', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'the-hand-ytdlp-failed-'));
+  const managedPath = join(directory, 'yt-dlp.exe');
+  try {
+    await writeFile(managedPath, '2026.08.19');
+    await assert.rejects(() => updateManagedYtDlp({
+      managedPath,
+      currentVersion: '2026.08.19',
+      versionReader: async (path) => (await readFile(path, 'utf8')).trim(),
+      updateRunner: async (path) => {
+        await writeFile(path, 'damaged download');
+        throw new Error('official checksum verification failed');
+      },
+    }), /checksum/);
+    assert.equal(await readFile(managedPath, 'utf8'), '2026.08.19');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

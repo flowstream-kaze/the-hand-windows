@@ -13,6 +13,9 @@ const jobPanel = $('#job-panel');
 const cancelButton = $('#cancel-button');
 const retryButton = $('#retry-button');
 const downloadButton = $('#download-button');
+const ytdlpVersion = $('#ytdlp-version');
+const ytdlpUpdateButton = $('#ytdlp-update-button');
+const ytdlpUpdateStatus = $('#ytdlp-update-status');
 
 let lookupResult = null;
 let selectedOption = null;
@@ -271,6 +274,35 @@ retryButton.addEventListener('click', () => {
   startButton.disabled = false;
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
+
+function renderYtDlpStatus(status) {
+  ytdlpVersion.textContent = status.version ? `yt-dlp ${status.version}` : 'yt-dlp version unavailable';
+  ytdlpUpdateButton.hidden = !status.available;
+  if (status.message) ytdlpUpdateStatus.textContent = status.message;
+}
+
+async function loadYtDlpStatus() {
+  try {
+    renderYtDlpStatus(await api('/api/ytdlp'));
+  } catch {
+    ytdlpVersion.textContent = 'yt-dlp status unavailable';
+    ytdlpUpdateButton.hidden = true;
+  }
+}
+
+ytdlpUpdateButton.addEventListener('click', async () => {
+  ytdlpUpdateStatus.textContent = '';
+  setBusy(ytdlpUpdateButton, true, 'Updating…');
+  try {
+    renderYtDlpStatus(await api('/api/ytdlp/update', { method: 'POST' }));
+  } catch (error) {
+    ytdlpUpdateStatus.textContent = error.message;
+  } finally {
+    setBusy(ytdlpUpdateButton, false, 'Updating…');
+  }
+});
+
+void loadYtDlpStatus();
 
 // Keeps the hidden portable server alive only while this page remains open.
 setInterval(() => {

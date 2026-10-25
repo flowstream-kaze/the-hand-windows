@@ -20,7 +20,7 @@
         <img src="/icon-192.png" alt="" width="44" height="44">
         <span>The Hand</span>
       </a>
-      <span class="privacy-pill">Private downloader · 1.0.1</span>
+      <span class="privacy-pill">Private downloader · 1.0.2</span>
     </header>
 
     <main>
@@ -108,7 +108,13 @@
     </main>
 
     <footer>
-      <span>Powered by yt-dlp</span>
+      <div class="runtime-tools">
+        <span id="ytdlp-version">Powered by yt-dlp</span>
+        <button id="ytdlp-update-button" class="text-button" type="button" hidden>
+          <span>Update yt-dlp</span>
+        </button>
+        <span id="ytdlp-update-status" class="runtime-status" role="status" aria-live="polite"></span>
+      </div>
       <span>Downloads expire from the server automatically.</span>
     </footer>
   </div>

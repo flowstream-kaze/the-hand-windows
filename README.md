@@ -17,6 +17,10 @@ No installation, Python, Node.js, FFmpeg, Docker, or browser extension is requir
 
 The current release is unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
 
+### Updating yt-dlp
+
+The footer shows the installed yt-dlp version. **Update yt-dlp** uses yt-dlp's official updater, which verifies `yt-dlp.exe` against the release's `SHA2-256SUMS`, and installs it under `%LOCALAPPDATA%\TheHandWindows\tools`. Updates survive portable-app restarts. A failed update leaves the previous copy intact; a missing or damaged copy is restored from the version bundled with The Hand. Updating is blocked while a lookup or download is active. Close The Hand and delete `%LOCALAPPDATA%\TheHandWindows` to remove the persistent update and return to the bundled version.
+
 ## Development
 
 Requirements: Node.js 20+, yt-dlp, and FFmpeg/FFprobe on `PATH`.

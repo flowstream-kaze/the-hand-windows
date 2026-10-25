@@ -36,11 +36,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR command_line, 
 
     wchar_t node_path[32768];
     wchar_t server_path[32768];
-    wchar_t ytdlp_path[32768];
+    wchar_t bundled_ytdlp_path[32768];
     wchar_t tools_path[32768];
     if (!join_path(node_path, ARRAY_LEN(node_path), base, L"runtime\\node.exe") ||
         !join_path(server_path, ARRAY_LEN(server_path), base, L"web\\server\\server.mjs") ||
-        !join_path(ytdlp_path, ARRAY_LEN(ytdlp_path), base, L"tools\\yt-dlp.exe") ||
+        !join_path(bundled_ytdlp_path, ARRAY_LEN(bundled_ytdlp_path), base, L"tools\\yt-dlp.exe") ||
         !join_path(tools_path, ARRAY_LEN(tools_path), base, L"tools")) {
         show_error(L"The Hand runtime path is too long.");
         return 1;
@@ -65,11 +65,34 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR command_line, 
     CreateDirectoryW(state_path, NULL);
     CreateDirectoryW(jobs_path, NULL);
 
+    wchar_t local_app_data[MAX_PATH * 2];
+    DWORD app_data_length = GetEnvironmentVariableW(
+        L"LOCALAPPDATA",
+        local_app_data,
+        ARRAY_LEN(local_app_data)
+    );
+    if (app_data_length == 0 || app_data_length >= ARRAY_LEN(local_app_data)) {
+        show_error(L"The Hand could not locate the local application data folder.");
+        return 1;
+    }
+    wchar_t app_data_path[MAX_PATH * 2];
+    wchar_t managed_tools_path[MAX_PATH * 2];
+    wchar_t managed_ytdlp_path[MAX_PATH * 2];
+    if (!join_path(app_data_path, ARRAY_LEN(app_data_path), local_app_data, L"TheHandWindows") ||
+        !join_path(managed_tools_path, ARRAY_LEN(managed_tools_path), app_data_path, L"tools") ||
+        !join_path(managed_ytdlp_path, ARRAY_LEN(managed_ytdlp_path), managed_tools_path, L"yt-dlp.exe")) {
+        show_error(L"The Hand application data path is too long.");
+        return 1;
+    }
+    CreateDirectoryW(app_data_path, NULL);
+    CreateDirectoryW(managed_tools_path, NULL);
+
     SetEnvironmentVariableW(L"PORTABLE_MODE", L"1");
     SetEnvironmentVariableW(L"HOST", L"127.0.0.1");
     SetEnvironmentVariableW(L"PORT", L"0");
     SetEnvironmentVariableW(L"DATA_DIR", jobs_path);
-    SetEnvironmentVariableW(L"YTDLP_PATH", ytdlp_path);
+    SetEnvironmentVariableW(L"BUNDLED_YTDLP_PATH", bundled_ytdlp_path);
+    SetEnvironmentVariableW(L"YTDLP_PATH", managed_ytdlp_path);
 
     DWORD old_path_length = GetEnvironmentVariableW(L"PATH", NULL, 0);
     size_t combined_length = wcslen(tools_path) + (size_t)old_path_length + 2;
